@@ -1,6 +1,7 @@
 import { useEffect,useState} from 'react';
 import { Navigate, useParams } from 'react-router-dom';
 import SpeechRecognition,{useSpeechRecognition} from 'react-speech-recognition';
+import IdeaPrompter from '../component/IdeaPrompter';
 
 
 export default function EditVox(){
@@ -17,6 +18,7 @@ export default function EditVox(){
     const [summary, setSummary] = useState('');
     const [redirect, setRedirect] = useState(false);
     const [isFetch, setFetch] = useState(true);
+    const [information, setInformation] = useState('');
     useEffect(()=>{
         if(isTitle){
             setTitle(transcript);
@@ -34,6 +36,7 @@ export default function EditVox(){
                     setSummary(createInfo.summary);
                     setContent(createInfo.content);
                     setFetch(false);
+                    setInformation(createInfo);
                 })
             })
     }},[transcript, isTitle, isSum, isContent,id,isFetch]);
@@ -117,6 +120,7 @@ export default function EditVox(){
     }
     return(
         <>
+            <IdeaPrompter content = {information} />
             <form className='create' onSubmit={updateVox}>
                 <input type='text' placeholder='Title' className='title'
                        value={title} onInput={(e)=>setTitle(e.target.value)}
