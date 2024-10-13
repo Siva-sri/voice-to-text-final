@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
+const keywordExtractor = require('keyword-extractor');
 const axios = require('axios');
 const User = require('./models/User');
 const Post = require('./models/Post');
@@ -68,6 +69,7 @@ app.post('/login',async (req,res)=>{
 
 app.get('/profile', (req,res)=>{
     const {token} = req.cookies;
+    if(!token) return res.json("No token");
     jwt.verify(token,secretKey,{},(err,info)=>{
         if (err) throw err;
         res.json(info);
@@ -118,19 +120,36 @@ app.get('/post/:id',async(req,res)=>{
     res.json(postDet);
 });
 
-app.post('/generate-idea', async (req, res) => {
-    console.log('Received request body:', req.body); // Log the entire request body
+// Endpoint to extract keywords from the provided text
+app.post('/extract-keywords', (req, res) => {
     const { content } = req.body;
-
-    // Extract the text content from the complex object
     const textContent = content && content.content ? content.content : content;
+    console.log('Received text content:', textContent);
 
-    // Validate input
     if (!textContent || typeof textContent !== 'string' || textContent.trim() === '') {
+        console.log('Invalid content');
         return res.status(400).json({ error: 'Content must be a non-empty string' });
     }
 
-    console.log('Sending text content:', textContent); // Log the extracted text content
+    const extractionResult = keywordExtractor.extract(textContent, {
+        language: 'english',
+        remove_digits: true,
+        return_changed_case: true,
+    });
+
+    console.log('Extraction result:', extractionResult);
+    res.json({ keywords: extractionResult });
+});
+
+
+// Endpoint to generate an idea based on the extracted keywords
+app.post('/generate-idea', async (req, res) => {
+    const { content } = req.body;
+    const textContent = Array.isArray(content) ? content.join(' ') : content;
+
+    if (!textContent || typeof textContent !== 'string' || textContent.trim() === '') {
+        return res.status(400).json({ error: 'Content must be a non-empty string' });
+    }
 
     try {
         const response = await axios.post(
@@ -140,7 +159,9 @@ app.post('/generate-idea', async (req, res) => {
         );
 
         if (response.data && response.data.length > 0) {
-            res.json({ idea: response.data[0].generated_text }); // Ensure this field is what your frontend expects
+            let generatedText = response.data[0].generated_text;
+            generatedText = generatedText.replace(/undefined/g, '').trim(); // Remove all occurrences of 'undefined' and trim whitespace
+            res.json({ idea: generatedText });
         } else {
             res.status(500).json({ error: 'No generated text found' });
         }

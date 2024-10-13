@@ -41,7 +41,6 @@ export default function EditVox(){
             })
     }},[transcript, isTitle, isSum, isContent,id,isFetch]);
 
-
     async function updateVox(e){
         e.preventDefault();
         const response = await fetch('http://localhost:4000/post',{
